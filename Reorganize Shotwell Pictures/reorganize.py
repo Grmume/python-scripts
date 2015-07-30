@@ -5,10 +5,11 @@ import ntpath
 import os
 
 #Global constants
-
+home = os.path.expanduser("~")
 strPhotoTable = "PhotoTable"
-dstPath = "/home/greg/Bilder/Fotos"
-#valid tags are: %year%, %month%, %event%
+dstPath = home + "/Bilder/Fotos"
+
+#valid tags are: %year%, %month%, %day%, %event%
 dstPattern = "%year%/%event%"
 
 class photoRow:
@@ -19,12 +20,6 @@ class photoRow:
 			self.eventId = eventId
 			self.eventName = eventName
 
-def getNumberOfPhotos(cursor):
-	"Read the number of photos from table photos"
-	cursor.execute("SELECT COUNT(*) FROM ?" , strPhotoTable)
-	row = cursor.fetchone()
-	return row[0];
-
 def getAllPhotos(cursor):
 	"Read all photos, store them in photoRows and return array"
 	photoList = []
@@ -34,7 +29,7 @@ def getAllPhotos(cursor):
 
 
 
-conn = sqlite3.connect("/home/greg/.local/share/shotwell/data/photo.db")
+conn = sqlite3.connect(home + "/.local/share/shotwell/data/photo.db")
 c = conn.cursor()
 for row in getAllPhotos(c):
 	filename = ntpath.basename(row.filename)
