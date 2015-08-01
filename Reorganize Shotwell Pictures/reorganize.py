@@ -8,6 +8,7 @@
 # The files are copied from the directory stored in the shotwell database to a new location
 # specified by dstPath and photoDstPattern.
 # If you want to update the shotwell library with the new filenames set the variable bUpdateDatabase to True
+# !! No Files will be deleted by this script !!
 
 import sqlite3
 import shutil
@@ -29,6 +30,8 @@ home = os.path.expanduser("~")
 photoDstPattern = "%Y/%b/%e"
 videoDstPattern = "%Y/%b/%e/Videos"
 
+# Choose whether you just want to copy the pictures to a new location and keep the original filepaths in the shotwell library (False)
+# or if you want to update the references in the shotwell library to the new file locations (True)
 bUpdateDatabase = True
 
 dstPath = home + "/Bilder/Fotos"
