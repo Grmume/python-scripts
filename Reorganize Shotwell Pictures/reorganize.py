@@ -14,6 +14,7 @@ import shutil
 import datetime
 import ntpath
 import os
+import calendar
 
 #Global constants
 home = os.path.expanduser("~")
@@ -21,16 +22,12 @@ home = os.path.expanduser("~")
 
 # Options
 #valid tags are: %Y : Year
-#				 %m : Month
+#				 %m : Number of month
 #				 %d : Day
+#				 %b : Abbreviated name of month(depending on locale)
 #				 %e : Event
-photoDstPattern = "%Y/%m/%e"
-
-#valid tags are: %Y : Year
-#				 %m : Month
-#				 %d : Day
-#				 %e : Event
-videoDstPattern = "%Y/%m/%e/Videos"
+photoDstPattern = "%Y/%b/%e"
+videoDstPattern = "%Y/%b/%e/Videos"
 
 bUpdateDatabase = True
 
@@ -79,75 +76,71 @@ def getAllVideos(cursor):
 def updatePhotoRow(cursor, newRow):
 	"Store the information of newRow in the database"
 	timestamp = row.datetime.timestamp()
-	#print("UPDATE PhotoTable SET filename=\"%(filename)s\", timestamp=%(timestamp)d, event_id=%(eventId)d WHERE id=%(id)d" % \
-	#	{"filename": row.filename, "timestamp": timestamp, "eventId": row.eventId, "id": row.id})
 	cursor.execute("UPDATE %(PhotoTable)s SET filename=\"%(filename)s\", timestamp=%(timestamp)d, event_id=%(eventId)d WHERE id=%(id)d" % \
 		{"PhotoTable": strPhotoTable, "filename": row.filename, "timestamp": timestamp, "eventId": row.eventId, "id": row.id})
 
 def updateVideoRow(cursor, newRow):
 	"Store the information of newRow in the database"
 	timestamp = row.datetime.timestamp()
-	#print("UPDATE PhotoTable SET filename=\"%(filename)s\", timestamp=%(timestamp)d, event_id=%(eventId)d WHERE id=%(id)d" % \
-	#	{"filename": row.filename, "timestamp": timestamp, "eventId": row.eventId, "id": row.id})
 	cursor.execute("UPDATE %(VideoTable)s SET filename=\"%(filename)s\", timestamp=%(timestamp)d, event_id=%(eventId)d WHERE id=%(id)d" % \
 		{"VideoTable":strVideoTable, "filename": row.filename, "timestamp": timestamp, "eventId": row.eventId, "id": row.id})
 
-def processPhotoRow(photoRow):
-	#Check if the file is already in the targetpath
-	print("Filename in database: " + row.filename)
-	if not dstPath in row.filename:
-		print("File is NOT in destination folder.")
-		filename = ntpath.basename(row.filename)
-		dstFilledPattern = photoDstPattern
-		dstFilledPattern = dstFilledPattern.replace("%Y" , str(row.datetime.year))
-		dstFilledPattern = dstFilledPattern.replace("%m" , str(row.datetime.month))
-		dstFilledPattern = dstFilledPattern.replace("%d" , str(row.datetime.day))
-		dstFilledPattern = dstFilledPattern.replace("%e" , row.eventName)
+def fillDestPattern(path, pattern, row):
+	dstFilledPattern = pattern
+	dstFilledPattern = dstFilledPattern.replace("%Y" , str(row.datetime.year))
+	dstFilledPattern = dstFilledPattern.replace("%m" , str(row.datetime.month))
+	dstFilledPattern = dstFilledPattern.replace("%d" , str(row.datetime.day))
+	dstFilledPattern = dstFilledPattern.replace("%b" , calendar.month_abbr[row.datetime.month])
+	dstFilledPattern = dstFilledPattern.replace("%e" , row.eventName)
+	return path + "/" + dstFilledPattern;
 
-		completeDstPath = dstPath + "/" + dstFilledPattern
+def processPhotoRow(photoRow):
+
+	destPath = fillDestPattern(dstPath, photoDstPattern, row)
+
+	#Check if the file is already in the targetpath
+	if not destPath in row.filename:
+		filename = ntpath.basename(row.filename)
+
+		print("File %s is not in destination path." % filename)
 
 		# Create folder if it does not exist yet
-		if not os.path.exists(completeDstPath):
-			os.makedirs(completeDstPath)
+		if not os.path.exists(destPath):
+			os.makedirs(destPath)
 
-		shutil.copy(row.filename, completeDstPath)
-		print("Copied to: " + completeDstPath)
+		shutil.copy2(row.filename, destPath)
+		print("	Copied to: " + destPath)
 
 		# Update information in database
 		if(bUpdateDatabase):
-			row.filename = completeDstPath + "/" + filename
+			row.filename = destPath + "/" + filename
 			updatePhotoRow(c,row)
-	else:
-		print("File IS in destination folder!")
 
 def processVideoRow(videoRow):
-	#Check if the file is already in the targetpath
-	print("Filename in database: " + row.filename)
-	if not dstPath in row.filename:
-		print("File is NOT in destination folder.")
-		filename = ntpath.basename(row.filename)
-		dstFilledPattern = videoDstPattern
-		dstFilledPattern = dstFilledPattern.replace("%Y" , str(row.datetime.year))
-		dstFilledPattern = dstFilledPattern.replace("%m" , str(row.datetime.month))
-		dstFilledPattern = dstFilledPattern.replace("%d" , str(row.datetime.day))
-		dstFilledPattern = dstFilledPattern.replace("%e" , row.eventName)
 
-		completeDstPath = dstPath + "/" + dstFilledPattern
+	destPath = fillDestPattern(dstPath, videoDstPattern, row)
+
+	#Check if the file is already in the targetpath
+	if not destPath in row.filename:
+
+		filename = ntpath.basename(row.filename)
+
+		print("File %s is not in destination path." % filename)
 
 		# Create folder if it does not exist yet
-		if not os.path.exists(completeDstPath):
-			os.makedirs(completeDstPath)
+		if not os.path.exists(destPath):
+			os.makedirs(destPath)
 
-		shutil.copy(row.filename, completeDstPath)
-		print("Copied to: " + completeDstPath)
+		shutil.copy2(row.filename, destPath)
+		print("	Copied to: " + destPath)
 
 		# Update information in database
 		if(bUpdateDatabase):
-			row.filename = completeDstPath + "/" + filename
+			row.filename = destPath + "/" + filename
 			updateVideoRow(c,row)
-	else:
-		print("File IS in destination folder!")
 
+
+# Main 
 conn = sqlite3.connect(strDatabasePath)
 c = conn.cursor()
 
